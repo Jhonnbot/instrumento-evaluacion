@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="es-MX">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>COCOSOFT — Instrumento de Evaluación</title><link rel="stylesheet" href="{{asset('css/cocosoft.css')}}"></head>
+<body>
+<header class="coco-public-bar"><div class="coco-public-bar-inner"><div class="coco-brand" style="padding:0;border:0;color:#0c1f3f"><span class="coco-brand-mark" style="background:#0c1f3f;color:white">C</span><span><span class="coco-brand-name">COCOSOFT</span><span class="coco-brand-sub" style="display:block">INSTRUMENTO DE EVALUACIÓN</span></span></div><a href="{{route('constancias.verificar.formulario')}}">Verificar constancia</a></div></header>
+<main class="coco-public-hero" style="min-height:74vh;display:grid;place-items:center"><div class="coco-public-hero-inner" style="width:100%"><span class="coco-eyebrow" style="color:#8eebe0">PLATAFORMA DE EVALUACIÓN</span><h1>Tu siguiente paso <span style="color:#67ddd1">comienza aquí.</span></h1><p>Practica, evalúa tus conocimientos y acredita tus resultados desde una plataforma diseñada para acompañarte en cada etapa.</p><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:35px"><a class="coco-btn" href="{{route('login')}}">Iniciar sesión →</a><a class="coco-btn" style="background:transparent;border:1px solid #ffffff75" href="{{route('register')}}">Crear cuenta de alumno</a><a href="{{route('constancias.verificar.formulario')}}" style="align-self:center;color:#9be9e1">Verificar constancia</a></div></div></main>
+</body></html>
