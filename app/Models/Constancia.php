@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Constancia extends Model
 {
     protected $table = 'constancias';
+
     protected $primaryKey = 'id_constancia';
+
     public $timestamps = false;
+
     protected $guarded = [];
 
     protected function casts(): array

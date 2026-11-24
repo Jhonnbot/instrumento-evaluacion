@@ -22,6 +22,7 @@ class VerificarConstanciaController extends Controller
         $constancia = Constancia::query()->with(['resultado.intento.alumno', 'resultado.intento.examen'])
             ->where('folio', trim($datos['folio']))
             ->where('clave_verificacion', trim($datos['clave']))->first();
+
         return view('constancias.verificar', compact('constancia') + ['consultado' => true]);
     }
 
@@ -29,6 +30,7 @@ class VerificarConstanciaController extends Controller
     {
         $constancia = Constancia::query()->with(['resultado.intento.alumno', 'resultado.intento.examen'])
             ->where('clave_verificacion', $clave)->first();
+
         return view('constancias.verificar', compact('constancia') + ['consultado' => true]);
     }
 }

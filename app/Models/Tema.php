@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Tema extends Model
 {
     protected $table = 'temas';
+
     protected $primaryKey = 'id_tema';
+
     public $timestamps = false;
 
     protected $fillable = ['id_categoria', 'nombre', 'descripcion'];

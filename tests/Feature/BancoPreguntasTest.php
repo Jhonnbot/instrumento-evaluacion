@@ -14,6 +14,7 @@ beforeEach(function (): void {
 function hu05Catalogo(): Tema
 {
     $categoria = Categoria::create(['nombre' => 'Categoría de prueba', 'estado' => true]);
+
     return Tema::create(['id_categoria' => $categoria->getKey(), 'nombre' => 'Tema de prueba']);
 }
 

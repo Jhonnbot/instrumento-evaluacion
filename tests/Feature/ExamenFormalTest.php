@@ -20,15 +20,15 @@ beforeEach(function (): void {
 function hu07Banco(): void
 {
     foreach (range(1, 5) as $n) {
-        $categoria = Categoria::create(['nombre' => 'Categoría examen '.$n, 'estado'=>true]);
-        $tema = Tema::create(['id_categoria'=>$categoria->getKey(), 'nombre'=>'Tema '.$n]);
+        $categoria = Categoria::create(['nombre' => 'Categoría examen '.$n, 'estado' => true]);
+        $tema = Tema::create(['id_categoria' => $categoria->getKey(), 'nombre' => 'Tema '.$n]);
         for ($i = 1; $i <= 2; $i++) {
-            $pregunta = Pregunta::create(['id_tema'=>$tema->getKey(),
-                'tipo'=>'opcion_multiple', 'estado'=>true, 'enunciado'=>"Pregunta examen {$n}-{$i}"]);
+            $pregunta = Pregunta::create(['id_tema' => $tema->getKey(),
+                'tipo' => 'opcion_multiple', 'estado' => true, 'enunciado' => "Pregunta examen {$n}-{$i}"]);
             // Se introduce b) antes de a) para comprobar la presentación ordenada sin cambiar IDs.
             $pregunta->opciones()->createMany([
-                ['texto_opcion'=>'b) Incorrecta', 'es_correcta'=>false],
-                ['texto_opcion'=>'a) Correcta', 'es_correcta'=>true],
+                ['texto_opcion' => 'b) Incorrecta', 'es_correcta' => false],
+                ['texto_opcion' => 'a) Correcta', 'es_correcta' => true],
             ]);
         }
     }
@@ -58,10 +58,10 @@ test('un intento dura 50 minutos, muestra dos preguntas e incisos consecutivos',
     $alumno = User::factory()->create();
     $this->actingAs($alumno)->post(route('alumno.examen.iniciar'));
     $intento = Intento::firstOrFail();
-    $this->get(route('alumno.examen.preguntas',[$intento->getKey(),1]))
+    $this->get(route('alumno.examen.preguntas', [$intento->getKey(), 1]))
         ->assertOk()->assertSee('Página 1 de 5')->assertSee('a) Correcta')
         ->assertSee('b) Incorrecta')->assertDontSee('es_correcta');
-    $this->get(route('alumno.examen.preguntas',[$intento->getKey(),6]))->assertNotFound();
+    $this->get(route('alumno.examen.preguntas', [$intento->getKey(), 6]))->assertNotFound();
     $this->post(route('alumno.examen.iniciar'));
     expect(Intento::count())->toBe(1);
 });
@@ -103,7 +103,7 @@ test('dos intentos reprobados bloquean el tercero si no hay autorización', func
         expect($intento->numero_intento)->toBe($numero);
         $servicio->finalizar($intento->getKey()); // Se entrega sin respuestas.
     }
-    expect(DB::table('resultados')->where('dictamen','REPROBADO')->count())->toBe(2);
+    expect(DB::table('resultados')->where('dictamen', 'REPROBADO')->count())->toBe(2);
     $this->actingAs($alumno)->post(route('alumno.examen.iniciar'))->assertSessionHasErrors('examen');
     expect(Intento::count())->toBe(2);
 });
@@ -127,9 +127,9 @@ test('un alumno no puede consultar ni modificar el intento ajeno', function () {
     $otro = User::factory()->create();
     $intento = app(ExamenService::class)->iniciar($dueño, Examen::firstOrFail());
     $this->actingAs($otro)
-        ->get(route('alumno.examen.preguntas',[$intento->getKey(),1]))->assertNotFound();
-    $this->post(route('alumno.examen.guardar',[$intento->getKey(),1]),
-        ['accion'=>'siguiente', 'respuestas'=>[]])->assertNotFound();
+        ->get(route('alumno.examen.preguntas', [$intento->getKey(), 1]))->assertNotFound();
+    $this->post(route('alumno.examen.guardar', [$intento->getKey(), 1]),
+        ['accion' => 'siguiente', 'respuestas' => []])->assertNotFound();
 });
 
 test('un tercer intento requiere aprobación y la autorización solo se consume una vez', function () {
@@ -142,12 +142,12 @@ test('un tercer intento requiere aprobación y la autorización solo se consume 
         $servicio->finalizar($intento->getKey());
     }
     $idSolicitud = DB::table('solicitudes_intento')->insertGetId([
-        'id_usuario'=>$alumno->getKey(), 'estado'=>'aprobada',
-        'fecha_solicitud'=>now(), 'fecha_resolucion'=>now(),
+        'id_usuario' => $alumno->getKey(), 'estado' => 'aprobada',
+        'fecha_solicitud' => now(), 'fecha_resolucion' => now(),
     ]);
     $tercero = $servicio->iniciar($alumno, $examen);
     expect($tercero->numero_intento)->toBe(3);
-    expect((int)$tercero->id_solicitud)->toBe((int)$idSolicitud);
+    expect((int) $tercero->id_solicitud)->toBe((int) $idSolicitud);
     $servicio->finalizar($tercero->getKey());
     $this->actingAs($alumno)->post(route('alumno.examen.iniciar'))->assertSessionHasErrors('examen');
     expect(Intento::count())->toBe(3);

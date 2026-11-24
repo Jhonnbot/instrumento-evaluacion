@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class OpcionRespuesta extends Model
 {
     protected $table = 'opciones_respuesta';
+
     protected $primaryKey = 'id_opcion';
+
     public $timestamps = false;
 
     protected $fillable = ['texto_opcion', 'es_correcta', 'orden_correcto'];

@@ -2,7 +2,6 @@
 
 use App\Models\User;
 use Database\Seeders\RolSeeder;
-use Illuminate\Support\Facades\DB;
 
 beforeEach(fn () => $this->seed(RolSeeder::class));
 

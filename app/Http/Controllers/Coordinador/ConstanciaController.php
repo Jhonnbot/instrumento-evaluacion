@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Constancia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ConstanciaController extends Controller
 {
@@ -17,7 +16,7 @@ class ConstanciaController extends Controller
             'estado' => ['nullable', 'in:vigente,revocada'],
         ]);
         $consulta = Constancia::query()->with(['resultado.intento.alumno', 'resultado.intento.examen']);
-        if (!empty($filtros['estado'])) {
+        if (! empty($filtros['estado'])) {
             $consulta->where('estado', $filtros['estado']);
         }
         $buscar = trim($filtros['buscar'] ?? '');
@@ -30,6 +29,7 @@ class ConstanciaController extends Controller
                     });
             });
         }
+
         return view('coordinador.constancias.index', ['constancias' => $consulta->orderByDesc('id_constancia')->paginate(10)->withQueryString()]);
     }
 
@@ -37,6 +37,7 @@ class ConstanciaController extends Controller
     {
         $registro = Constancia::query()->findOrFail($constancia);
         $registro->update(['estado' => 'revocada']);
+
         return redirect()->route('coordinador.constancias.index')->with('estado', 'Constancia revocada. La verificación pública indicará que ya no está vigente.');
     }
 }

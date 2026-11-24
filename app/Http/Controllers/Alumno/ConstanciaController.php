@@ -8,7 +8,6 @@ use App\Models\Resultado;
 use App\Services\Constancias\ConstanciaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
 
 class ConstanciaController extends Controller
 {
@@ -22,6 +21,7 @@ class ConstanciaController extends Controller
             ->get();
         $constancias = Constancia::query()->whereIn('id_resultado', $resultados->pluck('id_resultado'))
             ->get()->keyBy('id_resultado');
+
         return view('alumno.constancias.index', compact('resultados', 'constancias'));
     }
 
@@ -29,6 +29,7 @@ class ConstanciaController extends Controller
     {
         $registro = Resultado::query()->with('intento')->findOrFail($resultado);
         $constancia = $servicio->emitir($registro, (int) auth()->id());
+
         return redirect()->route('alumno.constancias.index')->with('estado',
             $constancia->estado === 'vigente'
                 ? 'Constancia disponible para descarga.'
@@ -41,6 +42,7 @@ class ConstanciaController extends Controller
         abort_unless((int) $registro->resultado->intento->id_usuario === (int) auth()->id(), 404);
         abort_unless($registro->estado === 'vigente', 403, 'La constancia fue revocada.');
         $contenido = $servicio->pdfExistente($registro);
+
         return response($contenido, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$registro->folio.'.pdf"',

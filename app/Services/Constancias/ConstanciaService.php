@@ -53,6 +53,7 @@ class ConstanciaService
             if (! Storage::disk('local')->put($ruta, $documento)) {
                 throw new \RuntimeException('No se pudo almacenar la constancia PDF.');
             }
+
             return $constancia;
         });
     }
@@ -63,6 +64,7 @@ class ConstanciaService
             // No reconstruimos un documento con datos que podrían haber cambiado.
             throw new \RuntimeException('El PDF original no está disponible. Revisa el almacenamiento privado.');
         }
+
         return Storage::disk('local')->get($constancia->ruta_pdf);
     }
 
@@ -72,7 +74,7 @@ class ConstanciaService
         $intento = $resultado->intento;
         $detalle = app(HistorialResultadosService::class)->detalle($intento);
         $url = route('constancias.verificar.qr', ['clave' => $constancia->clave_verificacion]);
-        $renderer = new ImageRenderer(new RendererStyle(220, 5), new SvgImageBackEnd());
+        $renderer = new ImageRenderer(new RendererStyle(220, 5), new SvgImageBackEnd);
         $qrSvg = (new Writer($renderer))->writeString($url);
         $qr = 'data:image/svg+xml;base64,'.base64_encode($qrSvg);
 

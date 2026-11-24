@@ -33,6 +33,7 @@ final class ReglasPregunta
         $tema = Tema::with('categoria')->find($datos['id_tema']);
         if (! $tema?->categoria?->estado) {
             $validator->errors()->add('id_tema', 'El tema debe pertenecer a una categoría activa.');
+
             return;
         }
 

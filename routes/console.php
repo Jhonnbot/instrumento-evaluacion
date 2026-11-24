@@ -2,13 +2,13 @@
 
 use App\Models\Rol;
 use App\Models\User;
+use App\Services\Evaluaciones\ExamenService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Support\Facades\Schedule;
-use App\Services\Evaluaciones\ExamenService;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -31,6 +31,7 @@ Artisan::command('cocosoft:crear-coordinador', function (): void {
 
     if ($validator->fails()) {
         $this->error($validator->errors()->first());
+
         return;
     }
 

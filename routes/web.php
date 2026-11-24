@@ -1,23 +1,23 @@
 <?php
 
+use App\Http\Controllers\Alumno\ConstanciaController as ConstanciaAlumnoController;
+use App\Http\Controllers\Alumno\ExamenController;
+use App\Http\Controllers\Alumno\HistorialController as HistorialAlumnoController;
+use App\Http\Controllers\Alumno\SimuladorController;
+use App\Http\Controllers\Alumno\SolicitudIntentoController as SolicitudAlumnoController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Coordinador\AlumnoController;
 use App\Http\Controllers\Coordinador\CategoriaController;
-use App\Http\Controllers\Coordinador\TemaController;
-use App\Http\Controllers\Coordinador\PreguntaController;
-use App\Http\Controllers\Coordinador\ImportacionPreguntasController;
-use App\Http\Controllers\Alumno\SimuladorController;
-use App\Http\Controllers\Alumno\ExamenController;
-use App\Http\Controllers\Alumno\SolicitudIntentoController as SolicitudAlumnoController;
-use App\Http\Controllers\Coordinador\SolicitudIntentoController as SolicitudCoordinadorController;
-use App\Http\Controllers\Alumno\HistorialController as HistorialAlumnoController;
-use App\Http\Controllers\Coordinador\HistorialController as HistorialCoordinadorController;
-use App\Http\Controllers\Alumno\ConstanciaController as ConstanciaAlumnoController;
 use App\Http\Controllers\Coordinador\ConstanciaController as ConstanciaCoordinadorController;
+use App\Http\Controllers\Coordinador\HistorialController as HistorialCoordinadorController;
+use App\Http\Controllers\Coordinador\ImportacionPreguntasController;
+use App\Http\Controllers\Coordinador\PreguntaController;
+use App\Http\Controllers\Coordinador\SolicitudIntentoController as SolicitudCoordinadorController;
+use App\Http\Controllers\Coordinador\TemaController;
+use App\Http\Controllers\PanelController;
 use App\Http\Controllers\Publico\VerificarConstanciaController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PanelController;
 
 Route::view('/', 'welcome')->name('home');
 

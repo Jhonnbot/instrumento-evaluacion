@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Examen extends Model
 {
     protected $table = 'examenes';
+
     protected $primaryKey = 'id_examen';
+
     public $timestamps = false;
+
     protected $fillable = ['nombre', 'duracion_minutos', 'minimo_aprobatorio', 'preguntas_por_pantalla', 'activo'];
 
     protected function casts(): array

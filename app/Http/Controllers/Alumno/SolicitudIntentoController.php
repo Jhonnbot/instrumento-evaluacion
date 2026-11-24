@@ -15,7 +15,7 @@ class SolicitudIntentoController extends Controller
     {
         return view('alumno.solicitudes.index', [
             'estado' => $servicio->estadoAlumno($request->user()),
-            'solicitudes' => SolicitudIntento::with(['coordinador','intento'])
+            'solicitudes' => SolicitudIntento::with(['coordinador', 'intento'])
                 ->where('id_usuario', $request->user()->getKey())
                 ->orderByDesc('id_solicitud')->paginate(10),
         ]);
@@ -24,6 +24,7 @@ class SolicitudIntentoController extends Controller
     public function store(Request $request, SolicitudIntentoService $servicio): RedirectResponse
     {
         $servicio->solicitar($request->user());
+
         return redirect()->route('alumno.solicitudes.index')
             ->with('exito', 'Solicitud enviada. Espera la decisión del Coordinador.');
     }

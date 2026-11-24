@@ -9,7 +9,9 @@ final class CalificadorReactivos
 {
     public function esCorrecta(Pregunta $pregunta, mixed $respuesta): bool
     {
-        if ($respuesta === null) return false;
+        if ($respuesta === null) {
+            return false;
+        }
 
         $opciones = $pregunta->opciones;
         $correctas = $opciones->where('es_correcta', true)
@@ -22,12 +24,12 @@ final class CalificadorReactivos
             $marcadas = array_values(array_unique(array_map('intval', $respuesta)));
             sort($marcadas);
             sort($correctas);
+
             return count($marcadas) > 0 && $marcadas === $correctas;
         }
         if ($pregunta->tipo === 'ordenamiento' && is_array($respuesta) &&
             count($respuesta) === $opciones->count()) {
-            return $opciones->every(fn ($opcion) =>
-                (int) ($respuesta[(string)$opcion->id_opcion] ?? 0) === (int)$opcion->orden_correcto);
+            return $opciones->every(fn ($opcion) => (int) ($respuesta[(string) $opcion->id_opcion] ?? 0) === (int) $opcion->orden_correcto);
         }
 
         return false;

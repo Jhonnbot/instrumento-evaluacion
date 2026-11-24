@@ -23,7 +23,9 @@ final class ImportarPreguntasCsvService
     ];
 
     private const MAX_FILAS = 5000;
+
     private const MAX_PREGUNTAS = 1000;
+
     private const MAX_ERRORES_VISIBLES = 80;
 
     public function __construct(private GuardarPreguntaService $guardador) {}
@@ -149,6 +151,7 @@ final class ImportarPreguntasCsvService
                     'registro' => $numeroRegistro, 'errores' => ['Número de columnas incorrecto; se esperan 8.'],
                     'categoria' => '', 'tema' => '', 'tipo' => '', 'enunciado' => '', 'opciones' => [],
                 ];
+
                 continue;
             }
             if (! mb_check_encoding(implode('', $fila), 'UTF-8')) {
@@ -196,6 +199,7 @@ final class ImportarPreguntasCsvService
         if ($grupos === []) {
             throw new InvalidArgumentException('El archivo no contiene filas de preguntas.');
         }
+
         return $grupos;
     }
 

@@ -6,7 +6,7 @@ namespace App\Support;
 final class OpcionesPresentacion
 {
     /**
-     * @param array<int,array{id:int,texto:string}> $opciones
+     * @param  array<int,array{id:int,texto:string}>  $opciones
      * @return array<int,array{id:int,texto:string}>
      */
     public static function preparar(array $opciones, string $tipo): array
@@ -14,7 +14,7 @@ final class OpcionesPresentacion
         // Respetar las letras que ya estaban escritas, si son consecutivas y únicas.
         $letras = [];
         foreach ($opciones as $opcion) {
-            if (!preg_match('/^\s*([a-z])\s*[).:-]\s*/iu', $opcion['texto'], $match)) {
+            if (! preg_match('/^\s*([a-z])\s*[).:-]\s*/iu', $opcion['texto'], $match)) {
                 $letras = [];
                 break;
             }
@@ -26,6 +26,7 @@ final class OpcionesPresentacion
             usort($opciones, function (array $a, array $b): int {
                 preg_match('/^\s*([a-z])\s*[).:-]/iu', $a['texto'], $ma);
                 preg_match('/^\s*([a-z])\s*[).:-]/iu', $b['texto'], $mb);
+
                 return strcmp(strtolower($ma[1]), strtolower($mb[1]));
             });
         } else {
@@ -38,7 +39,7 @@ final class OpcionesPresentacion
         $marcasOrden = $tipo === 'ordenamiento' && count($opciones) > 0;
         if ($marcasOrden) {
             foreach ($opciones as $opcion) {
-                if (!preg_match('/^\s*\d{1,2}\s*[).:-]?\s+\S/u', $opcion['texto'])) {
+                if (! preg_match('/^\s*\d{1,2}\s*[).:-]?\s+\S/u', $opcion['texto'])) {
                     $marcasOrden = false;
                     break;
                 }

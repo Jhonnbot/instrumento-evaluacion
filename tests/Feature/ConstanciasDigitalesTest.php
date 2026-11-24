@@ -24,6 +24,7 @@ function hu10Resultado(User $alumno, int $numero = 1, int $puntos = 850): int
         'fecha_fin' => '2026-11-19 00:41:00',
         'estado' => 'enviado',
     ]);
+
     return DB::table('resultados')->insertGetId([
         'id_intento' => $intento->getKey(),
         'calificacion_final' => $puntos,

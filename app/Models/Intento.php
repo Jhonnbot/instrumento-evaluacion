@@ -10,8 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Intento extends Model
 {
     protected $table = 'intentos';
+
     protected $primaryKey = 'id_intento';
+
     public $timestamps = false;
+
     protected $guarded = [];
 
     protected function casts(): array

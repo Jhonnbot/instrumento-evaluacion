@@ -21,7 +21,7 @@ class SolicitudIntentoService
             ->where('estado', 'pendiente')->exists();
         $puedeSolicitar = $estadoExamen !== null
             && $estadoExamen['requiere_autorizacion']
-            && !$pendiente
+            && ! $pendiente
             && $this->todosLosIntentosReprobados($estadoExamen['intentos']);
 
         return compact('examen', 'estadoExamen', 'pendiente', 'puedeSolicitar');
@@ -33,6 +33,7 @@ class SolicitudIntentoService
         if ($intentos->count() < 2 || $intentos->contains(fn ($i) => $i->estado === 'en_curso')) {
             return false;
         }
+
         return DB::table('resultados')->whereIn('id_intento', $intentos->pluck('id_intento'))
             ->where('dictamen', 'REPROBADO')->count() === $intentos->count();
     }
@@ -42,15 +43,15 @@ class SolicitudIntentoService
     {
         return DB::transaction(function () use ($alumno): SolicitudIntento {
             DB::table('usuarios')->where('id_usuario', $alumno->getKey())->lockForUpdate()->first();
-            if (!$alumno->fresh()?->estaActivo()) {
+            if (! $alumno->fresh()?->estaActivo()) {
                 throw ValidationException::withMessages(['solicitud' => 'La cuenta debe estar activa.']);
             }
             $estado = $this->estadoAlumno($alumno);
-            if (!$estado['puedeSolicitar']) {
-                throw ValidationException::withMessages(['solicitud' =>
-                    $estado['pendiente'] ? 'Ya tienes una solicitud pendiente de revisión.' :
+            if (! $estado['puedeSolicitar']) {
+                throw ValidationException::withMessages(['solicitud' => $estado['pendiente'] ? 'Ya tienes una solicitud pendiente de revisión.' :
                     'Solo puedes solicitar otra oportunidad después de agotar los intentos disponibles sin aprobar.']);
             }
+
             return SolicitudIntento::create([
                 'id_usuario' => $alumno->getKey(),
                 'estado' => 'pendiente',
@@ -62,7 +63,7 @@ class SolicitudIntentoService
     /** Rechaza o autoriza: una autorización habilita un intento y solo uno. */
     public function resolver(User $coordinador, int $idSolicitud, string $decision, ?string $observaciones): SolicitudIntento
     {
-        if (!in_array($decision, ['aprobar', 'rechazar'], true)) {
+        if (! in_array($decision, ['aprobar', 'rechazar'], true)) {
             throw ValidationException::withMessages(['decision' => 'Decisión inválida.']);
         }
 
@@ -77,13 +78,13 @@ class SolicitudIntentoService
 
             if ($decision === 'aprobar') {
                 $alumno = User::query()->findOrFail($idAlumno);
-                if (!$alumno->estaActivo()) {
+                if (! $alumno->estaActivo()) {
                     throw ValidationException::withMessages(['solicitud' => 'No se puede autorizar a un alumno inactivo.']);
                 }
                 $estado = $this->estadoAlumno($alumno);
                 // El estado marca pendiente (esta solicitud). Solo comprobamos los requisitos del examen.
                 $e = $estado['estadoExamen'];
-                if (!$e || !$e['requiere_autorizacion'] || !$this->todosLosIntentosReprobados($e['intentos'])) {
+                if (! $e || ! $e['requiere_autorizacion'] || ! $this->todosLosIntentosReprobados($e['intentos'])) {
                     throw ValidationException::withMessages(['solicitud' => 'El alumno ya no cumple las condiciones para otro intento.']);
                 }
                 $autorizacionLibre = SolicitudIntento::query()->where('id_usuario', $idAlumno)
@@ -99,6 +100,7 @@ class SolicitudIntentoService
                 'fecha_resolucion' => now(),
                 'observaciones' => $observaciones,
             ]);
+
             return $solicitud->refresh();
         }, 3);
     }

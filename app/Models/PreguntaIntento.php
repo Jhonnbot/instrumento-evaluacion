@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class PreguntaIntento extends Model
 {
     protected $table = 'preguntas_intento';
+
     protected $primaryKey = 'id_intento_pregunta';
+
     public $timestamps = false;
 
     protected $guarded = ['*'];

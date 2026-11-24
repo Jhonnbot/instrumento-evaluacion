@@ -14,6 +14,7 @@ beforeEach(function (): void {
 function hu04Tema(): Tema
 {
     $categoria = Categoria::create(['nombre' => 'Conceptos Básicos', 'estado' => true]);
+
     return Tema::create(['id_categoria' => $categoria->getKey(), 'nombre' => 'Introducción a computadoras']);
 }
 
@@ -33,6 +34,7 @@ function hu04Csv(array $filas, string $separador = ','): UploadedFile
     rewind($contenido);
     $datos = stream_get_contents($contenido);
     fclose($contenido);
+
     return UploadedFile::fake()->createWithContent('preguntas.csv', $datos);
 }
 

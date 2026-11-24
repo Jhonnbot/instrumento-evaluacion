@@ -27,6 +27,7 @@ function hu09Resultado(User $alumno, int $numero, int $puntos, string $utc = '20
         'dictamen' => $puntos >= 700 ? 'APROBADO' : 'REPROBADO',
         'fecha_calificacion' => $utc,
     ]);
+
     return $intento;
 }
 

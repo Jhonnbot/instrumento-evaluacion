@@ -10,7 +10,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class SolicitudIntento extends Model
 {
     protected $table = 'solicitudes_intento';
+
     protected $primaryKey = 'id_solicitud';
+
     public $timestamps = false;
 
     protected $fillable = [

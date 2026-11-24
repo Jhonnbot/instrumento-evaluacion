@@ -100,7 +100,7 @@ test('coordinador aprueba y solo se habilita un tercer intento enlazado', functi
         ->assertOk()->assertSee('Autorización disponible');
     $tercero = app(ExamenService::class)->iniciar($alumno, Examen::firstOrFail());
     expect($tercero->numero_intento)->toBe(3);
-    expect((int)$tercero->id_solicitud)->toBe($solicitud->getKey());
+    expect((int) $tercero->id_solicitud)->toBe($solicitud->getKey());
     app(ExamenService::class)->finalizar($tercero->getKey());
     expect(Intento::count())->toBe(3);
     $this->actingAs($alumno)->post(route('alumno.examen.iniciar'))

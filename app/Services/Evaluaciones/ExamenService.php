@@ -8,6 +8,7 @@ use App\Models\Intento;
 use App\Models\Pregunta;
 use App\Models\User;
 use App\Support\OpcionesPresentacion;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -22,7 +23,7 @@ class ExamenService
         return Examen::query()->where('activo', true)->orderBy('id_examen')->first();
     }
 
-    public function expira(Intento $intento): \Carbon\CarbonInterface
+    public function expira(Intento $intento): CarbonInterface
     {
         return $intento->fecha_inicio->copy()->addMinutes($intento->examen->duracion_minutos);
     }
@@ -44,9 +45,10 @@ class ExamenService
         $activo = $intentos->firstWhere('estado', 'en_curso');
         $usados = $intentos->count();
         $adicional = $usados >= 2 && $this->solicitudAprobadaLibre($alumno) !== null;
+
         return ['intentos' => $intentos, 'usados' => $usados, 'activo' => $activo,
-            'aprobado' => $aprobado, 'puede_iniciar' => !$aprobado && !$activo && ($usados < 2 || $adicional),
-            'requiere_autorizacion' => !$aprobado && !$activo && $usados >= 2 && !$adicional];
+            'aprobado' => $aprobado, 'puede_iniciar' => ! $aprobado && ! $activo && ($usados < 2 || $adicional),
+            'requiere_autorizacion' => ! $aprobado && ! $activo && $usados >= 2 && ! $adicional];
     }
 
     /** Obtiene autorización administrativa aprobada y aún no consumida, si existe. */
@@ -56,7 +58,8 @@ class ExamenService
             ->leftJoin('intentos as i', 'i.id_solicitud', '=', 's.id_solicitud')
             ->where('s.id_usuario', $alumno->getKey())->where('s.estado', 'aprobada')
             ->whereNull('i.id_intento')->orderBy('s.id_solicitud')->first(['s.id_solicitud']);
-        return $solicitud ? (int)$solicitud->id_solicitud : null;
+
+        return $solicitud ? (int) $solicitud->id_solicitud : null;
     }
 
     /** No crea otro intento si existe uno en curso. El bloqueo evita dobles clics simultáneos. */
@@ -66,10 +69,11 @@ class ExamenService
             DB::table('usuarios')->where('id_usuario', $alumno->getKey())->lockForUpdate()->first();
             $this->cerrarVencidosDelAlumno($alumno, $examen);
             $estado = $this->estado($alumno, $examen);
-            if ($estado['activo']) return $estado['activo']->load('examen');
-            if (!$estado['puede_iniciar']) {
-                throw ValidationException::withMessages(['examen' =>
-                    $estado['aprobado'] ? 'Ya aprobaste este examen: no puedes presentar otro intento.' :
+            if ($estado['activo']) {
+                return $estado['activo']->load('examen');
+            }
+            if (! $estado['puede_iniciar']) {
+                throw ValidationException::withMessages(['examen' => $estado['aprobado'] ? 'Ya aprobaste este examen: no puedes presentar otro intento.' :
                     'Has utilizado tus dos intentos. Necesitas autorización del coordinador para otro.']);
             }
             if ($examen->duracion_minutos !== 50 || $examen->minimo_aprobatorio !== 700 ||
@@ -90,6 +94,7 @@ class ExamenService
                     'orden_presentacion' => $indice + 1,
                 ]);
             }
+
             return $intento->load('examen');
         }, 3);
     }
@@ -99,8 +104,7 @@ class ExamenService
     {
         $categorias = Categoria::query()->where('estado', true)->orderBy('id_categoria')->get();
         if ($categorias->count() !== 5) {
-            throw ValidationException::withMessages(['banco' =>
-                'El examen oficial requiere exactamente cinco categorías activas (20 % cada una).']);
+            throw ValidationException::withMessages(['banco' => 'El examen oficial requiere exactamente cinco categorías activas (20 % cada una).']);
         }
         $porCategoria = (int) config('examen_cocosoft.preguntas_por_categoria', 2);
         if ($porCategoria < 2 || $porCategoria > 100) {
@@ -111,14 +115,14 @@ class ExamenService
             $seleccion = Pregunta::query()->where('estado', true)
                 ->whereHas('tema', fn ($consulta) => $consulta->where('id_categoria', $categoria->getKey()))
                 ->has('opciones', '>=', 2)->inRandomOrder()->limit($porCategoria)
-                ->pluck('id_pregunta')->map(fn ($id) => (int)$id)->all();
+                ->pluck('id_pregunta')->map(fn ($id) => (int) $id)->all();
             if (count($seleccion) !== $porCategoria) {
-                throw ValidationException::withMessages(['banco' =>
-                    "La categoría «{$categoria->nombre}» necesita al menos {$porCategoria} reactivos activos con opciones."]);
+                throw ValidationException::withMessages(['banco' => "La categoría «{$categoria->nombre}» necesita al menos {$porCategoria} reactivos activos con opciones."]);
             }
             array_push($ids, ...$seleccion);
         }
         shuffle($ids); // Aleatoriza únicamente el orden de las preguntas, no el de los incisos.
+
         return $ids;
     }
 
@@ -129,6 +133,7 @@ class ExamenService
             $this->finalizar($intento->getKey());
             $intento->refresh();
         }
+
         return $intento;
     }
 
@@ -151,22 +156,24 @@ class ExamenService
         $salida = [];
         foreach ($asignadas as $asignada) {
             $pregunta = $preguntas->get($asignada->id_pregunta);
-            if (!$pregunta) throw new RuntimeException('No se encontró una pregunta asignada al examen.');
-            $opciones = $pregunta->opciones->sortBy('id_opcion')->map(fn ($o) =>
-                ['id'=>(int)$o->id_opcion, 'texto'=>$o->texto_opcion])->values()->all();
+            if (! $pregunta) {
+                throw new RuntimeException('No se encontró una pregunta asignada al examen.');
+            }
+            $opciones = $pregunta->opciones->sortBy('id_opcion')->map(fn ($o) => ['id' => (int) $o->id_opcion, 'texto' => $o->texto_opcion])->values()->all();
             $registro = $respuestaPorPregunta->get($asignada->id_intento_pregunta);
             $guardadas = $registro ? ($selecciones->get($registro->id_respuesta) ?? collect()) : collect();
             $respuesta = match ($pregunta->tipo) {
-                'opcion_multiple', 'verdadero_falso' => $guardadas->isEmpty() ? null : (int)$guardadas->first()->id_opcion,
-                'seleccion_multiple' => $guardadas->pluck('id_opcion')->map(fn ($v) => (int)$v)->all(),
-                'ordenamiento' => $guardadas->mapWithKeys(fn ($r) => [(string)$r->id_opcion => (int)$r->orden_seleccion])->all(),
+                'opcion_multiple', 'verdadero_falso' => $guardadas->isEmpty() ? null : (int) $guardadas->first()->id_opcion,
+                'seleccion_multiple' => $guardadas->pluck('id_opcion')->map(fn ($v) => (int) $v)->all(),
+                'ordenamiento' => $guardadas->mapWithKeys(fn ($r) => [(string) $r->id_opcion => (int) $r->orden_seleccion])->all(),
                 default => null,
             };
-            $salida[] = ['id'=>(int)$asignada->id_pregunta,
-                'orden'=>(int)$asignada->orden_presentacion, 'enunciado'=>$pregunta->enunciado,
-                'tipo'=>$pregunta->tipo, 'categoria'=>$pregunta->tema->categoria->nombre,
-                'opciones'=>OpcionesPresentacion::preparar($opciones, $pregunta->tipo), 'respuesta'=>$respuesta];
+            $salida[] = ['id' => (int) $asignada->id_pregunta,
+                'orden' => (int) $asignada->orden_presentacion, 'enunciado' => $pregunta->enunciado,
+                'tipo' => $pregunta->tipo, 'categoria' => $pregunta->tema->categoria->nombre,
+                'opciones' => OpcionesPresentacion::preparar($opciones, $pregunta->tipo), 'respuesta' => $respuesta];
         }
+
         return $salida;
     }
 
@@ -176,9 +183,12 @@ class ExamenService
         return DB::transaction(function () use ($alumno, $idIntento, $pagina, $respuestas, $finalizar): bool {
             $intento = Intento::with('examen')->where('id_usuario', $alumno->getKey())
                 ->lockForUpdate()->findOrFail($idIntento);
-            if ($intento->estado !== 'en_curso') return true;
+            if ($intento->estado !== 'en_curso') {
+                return true;
+            }
             if ($this->vencido($intento)) {
                 $this->finalizarBloqueado($intento);
+
                 return true;
             }
             $paginas = $this->paginas($intento);
@@ -189,27 +199,31 @@ class ExamenService
                 ->get()->keyBy('id_pregunta');
             foreach ($asignadas as $asignada) {
                 $pregunta = $preguntas->get($asignada->id_pregunta);
-                $valor = $respuestas[(string)$asignada->id_pregunta] ?? null;
+                $valor = $respuestas[(string) $asignada->id_pregunta] ?? null;
                 $elecciones = $this->validarRespuesta($pregunta, $valor);
                 $existente = DB::table('respuestas_intento')->where('id_intento_pregunta', $asignada->id_intento_pregunta)->first();
-                if (!$existente && count($elecciones) === 0) continue;
-                $idRespuesta = $existente ? (int)$existente->id_respuesta : (int) DB::table('respuestas_intento')
-                    ->insertGetId(['id_intento_pregunta'=>$asignada->id_intento_pregunta,
-                        'fecha_respuesta'=>now(), 'es_correcta'=>null]);
+                if (! $existente && count($elecciones) === 0) {
+                    continue;
+                }
+                $idRespuesta = $existente ? (int) $existente->id_respuesta : (int) DB::table('respuestas_intento')
+                    ->insertGetId(['id_intento_pregunta' => $asignada->id_intento_pregunta,
+                        'fecha_respuesta' => now(), 'es_correcta' => null]);
                 DB::table('respuestas_opciones')->where('id_respuesta', $idRespuesta)->delete();
                 if ($elecciones) {
                     DB::table('respuestas_opciones')->insert(array_map(fn ($opcion) => [
-                        'id_respuesta'=>$idRespuesta, 'id_opcion'=>$opcion['id'],
-                        'orden_seleccion'=>$opcion['orden'],
+                        'id_respuesta' => $idRespuesta, 'id_opcion' => $opcion['id'],
+                        'orden_seleccion' => $opcion['orden'],
                     ], $elecciones));
                 }
                 DB::table('respuestas_intento')->where('id_respuesta', $idRespuesta)
-                    ->update(['fecha_respuesta'=> $elecciones ? now() : null, 'es_correcta'=>null]);
+                    ->update(['fecha_respuesta' => $elecciones ? now() : null, 'es_correcta' => null]);
             }
             if ($finalizar) {
                 $this->finalizarBloqueado($intento);
+
                 return true;
             }
+
             return false;
         }, 3);
     }
@@ -217,64 +231,77 @@ class ExamenService
     /** @return array<int,array{id:int,orden:?int}> */
     private function validarRespuesta(Pregunta $pregunta, mixed $valor): array
     {
-        if ($valor === null || $valor === '' || $valor === []) return [];
-        $validos = $pregunta->opciones->pluck('id_opcion')->map(fn ($x) => (int)$x)->all();
+        if ($valor === null || $valor === '' || $valor === []) {
+            return [];
+        }
+        $validos = $pregunta->opciones->pluck('id_opcion')->map(fn ($x) => (int) $x)->all();
         $campo = 'respuestas.'.$pregunta->getKey();
         if (in_array($pregunta->tipo, ['opcion_multiple', 'verdadero_falso'], true)) {
-            if (!is_scalar($valor) || !ctype_digit((string)$valor) || !in_array((int)$valor, $validos, true)) {
-                throw ValidationException::withMessages([$campo=>'Selecciona una opción válida.']);
+            if (! is_scalar($valor) || ! ctype_digit((string) $valor) || ! in_array((int) $valor, $validos, true)) {
+                throw ValidationException::withMessages([$campo => 'Selecciona una opción válida.']);
             }
-            return [['id'=>(int)$valor, 'orden'=>null]];
+
+            return [['id' => (int) $valor, 'orden' => null]];
         }
-        if (!is_array($valor)) throw ValidationException::withMessages([$campo=>'Formato de respuesta inválido.']);
+        if (! is_array($valor)) {
+            throw ValidationException::withMessages([$campo => 'Formato de respuesta inválido.']);
+        }
         if ($pregunta->tipo === 'seleccion_multiple') {
             $ids = [];
             foreach ($valor as $item) {
-                if (!is_scalar($item) || !ctype_digit((string)$item) || !in_array((int)$item, $validos, true)) {
-                    throw ValidationException::withMessages([$campo=>'Las opciones elegidas deben pertenecer a la pregunta.']);
+                if (! is_scalar($item) || ! ctype_digit((string) $item) || ! in_array((int) $item, $validos, true)) {
+                    throw ValidationException::withMessages([$campo => 'Las opciones elegidas deben pertenecer a la pregunta.']);
                 }
-                $ids[] = (int)$item;
+                $ids[] = (int) $item;
             }
             if (count($ids) !== count(array_unique($ids))) {
-                throw ValidationException::withMessages([$campo=>'No se puede seleccionar una opción dos veces.']);
+                throw ValidationException::withMessages([$campo => 'No se puede seleccionar una opción dos veces.']);
             }
-            return array_map(fn ($id) => ['id'=>$id,'orden'=>null], $ids);
+
+            return array_map(fn ($id) => ['id' => $id, 'orden' => null], $ids);
         }
         if ($pregunta->tipo === 'ordenamiento') {
             $elecciones = [];
             $posiciones = [];
             foreach ($valor as $id => $posicion) {
-                if ($posicion === '' || $posicion === null) continue;
-                if (!ctype_digit((string)$id) || !in_array((int)$id, $validos, true) ||
-                    !is_scalar($posicion) || !ctype_digit((string)$posicion) ||
-                    (int)$posicion < 1 || (int)$posicion > count($validos)) {
-                    throw ValidationException::withMessages([$campo=>'Indica posiciones válidas para las opciones de ordenamiento.']);
+                if ($posicion === '' || $posicion === null) {
+                    continue;
                 }
-                $posiciones[] = (int)$posicion;
-                $elecciones[] = ['id'=>(int)$id,'orden'=>(int)$posicion];
+                if (! ctype_digit((string) $id) || ! in_array((int) $id, $validos, true) ||
+                    ! is_scalar($posicion) || ! ctype_digit((string) $posicion) ||
+                    (int) $posicion < 1 || (int) $posicion > count($validos)) {
+                    throw ValidationException::withMessages([$campo => 'Indica posiciones válidas para las opciones de ordenamiento.']);
+                }
+                $posiciones[] = (int) $posicion;
+                $elecciones[] = ['id' => (int) $id, 'orden' => (int) $posicion];
             }
             if (count($posiciones) !== count(array_unique($posiciones))) {
-                throw ValidationException::withMessages([$campo=>'No repitas la misma posición de ordenamiento.']);
+                throw ValidationException::withMessages([$campo => 'No repitas la misma posición de ordenamiento.']);
             }
+
             return $elecciones;
         }
-        throw ValidationException::withMessages([$campo=>'Tipo de reactivo no admitido.']);
+        throw ValidationException::withMessages([$campo => 'Tipo de reactivo no admitido.']);
     }
 
     public function finalizar(int $idIntento): void
     {
         DB::transaction(function () use ($idIntento): void {
             $intento = Intento::with('examen')->lockForUpdate()->findOrFail($idIntento);
-            if ($intento->estado === 'en_curso') $this->finalizarBloqueado($intento);
+            if ($intento->estado === 'en_curso') {
+                $this->finalizarBloqueado($intento);
+            }
         }, 3);
     }
 
     /** Llamar solo dentro de una transacción y con bloqueo de la fila intento. */
     private function finalizarBloqueado(Intento $intento): void
     {
-        if ($intento->estado !== 'en_curso') return;
+        if ($intento->estado !== 'en_curso') {
+            return;
+        }
         $asignadas = DB::table('preguntas_intento')->where('id_intento', $intento->getKey())->get();
-        $preguntas = Pregunta::with(['opciones','tema.categoria'])
+        $preguntas = Pregunta::with(['opciones', 'tema.categoria'])
             ->whereIn('id_pregunta', $asignadas->pluck('id_pregunta'))->get()->keyBy('id_pregunta');
         $rRows = DB::table('respuestas_intento')->whereIn('id_intento_pregunta', $asignadas->pluck('id_intento_pregunta'))->get();
         $selecciones = DB::table('respuestas_opciones')->whereIn('id_respuesta', $rRows->pluck('id_respuesta'))
@@ -284,17 +311,19 @@ class ExamenService
         $temas = [];
         foreach ($asignadas as $asignada) {
             $pregunta = $preguntas->get($asignada->id_pregunta);
-            if (!$pregunta) throw new RuntimeException('Pregunta asignada inexistente. No es posible cerrar el examen.');
-            $cid = (int)$pregunta->tema->id_categoria;
-            $tid = (int)$pregunta->id_tema;
-            $categorias[$cid] ??= ['total'=>0, 'aciertos'=>0];
-            $temas[$tid] ??= ['total'=>0, 'aciertos'=>0];
+            if (! $pregunta) {
+                throw new RuntimeException('Pregunta asignada inexistente. No es posible cerrar el examen.');
+            }
+            $cid = (int) $pregunta->tema->id_categoria;
+            $tid = (int) $pregunta->id_tema;
+            $categorias[$cid] ??= ['total' => 0, 'aciertos' => 0];
+            $temas[$tid] ??= ['total' => 0, 'aciertos' => 0];
             $registro = $rPorAsignada->get($asignada->id_intento_pregunta);
             $marcadas = $registro ? ($selecciones->get($registro->id_respuesta) ?? collect()) : collect();
             $valor = match ($pregunta->tipo) {
-                'opcion_multiple','verdadero_falso' => $marcadas->isEmpty() ? null : (int)$marcadas->first()->id_opcion,
-                'seleccion_multiple' => $marcadas->pluck('id_opcion')->map(fn ($id) => (int)$id)->all(),
-                'ordenamiento' => $marcadas->mapWithKeys(fn ($r) => [(string)$r->id_opcion => (int)$r->orden_seleccion])->all(),
+                'opcion_multiple','verdadero_falso' => $marcadas->isEmpty() ? null : (int) $marcadas->first()->id_opcion,
+                'seleccion_multiple' => $marcadas->pluck('id_opcion')->map(fn ($id) => (int) $id)->all(),
+                'ordenamiento' => $marcadas->mapWithKeys(fn ($r) => [(string) $r->id_opcion => (int) $r->orden_seleccion])->all(),
                 default => null,
             };
             $bien = $this->calificador->esCorrecta($pregunta, $valor);
@@ -304,10 +333,14 @@ class ExamenService
                 $categorias[$cid]['aciertos']++;
                 $temas[$tid]['aciertos']++;
             }
-            if ($registro) DB::table('respuestas_intento')->where('id_respuesta', $registro->id_respuesta)
-                ->update(['es_correcta'=>$bien]);
+            if ($registro) {
+                DB::table('respuestas_intento')->where('id_respuesta', $registro->id_respuesta)
+                    ->update(['es_correcta' => $bien]);
+            }
         }
-        if (count($categorias) !== 5) throw new RuntimeException('El examen necesita cinco categorías distintas para calificar.');
+        if (count($categorias) !== 5) {
+            throw new RuntimeException('El examen necesita cinco categorías distintas para calificar.');
+        }
         $puntaje = 0.0;
         foreach ($categorias as $categoria) {
             $puntaje += round(200 * $categoria['aciertos'] / $categoria['total'], 2);
@@ -315,26 +348,26 @@ class ExamenService
         $total = (int) round($puntaje);
         $dictamen = $total >= 700 ? 'APROBADO' : 'REPROBADO';
         $idResultado = DB::table('resultados')->insertGetId([
-            'id_intento'=>$intento->getKey(), 'calificacion_final'=>$total,
-            'dictamen'=>$dictamen, 'fecha_calificacion'=>now(),
+            'id_intento' => $intento->getKey(), 'calificacion_final' => $total,
+            'dictamen' => $dictamen, 'fecha_calificacion' => now(),
         ]);
         foreach ($categorias as $id => $c) {
             DB::table('detalle_resultado_categoria')->insert([
-                'id_resultado'=>$idResultado, 'id_categoria'=>$id,
-                'puntaje_obtenido'=>round(200 * $c['aciertos'] / $c['total'], 2),
-                'ponderacion_aplicada'=>0.2,
+                'id_resultado' => $idResultado, 'id_categoria' => $id,
+                'puntaje_obtenido' => round(200 * $c['aciertos'] / $c['total'], 2),
+                'ponderacion_aplicada' => 0.2,
             ]);
         }
         foreach ($temas as $id => $t) {
             DB::table('detalle_resultado_tema')->insert([
-                'id_resultado'=>$idResultado, 'id_tema'=>$id,
-                'preguntas_totales'=>$t['total'], 'respuestas_correctas'=>$t['aciertos'],
+                'id_resultado' => $idResultado, 'id_tema' => $id,
+                'preguntas_totales' => $t['total'], 'respuestas_correctas' => $t['aciertos'],
             ]);
         }
         $caducado = $this->vencido($intento);
         $intento->update([
-            'estado'=>$caducado ? 'tiempo_agotado' : 'enviado',
-            'fecha_fin'=>$caducado ? $this->expira($intento) : now(),
+            'estado' => $caducado ? 'tiempo_agotado' : 'enviado',
+            'fecha_fin' => $caducado ? $this->expira($intento) : now(),
         ]);
     }
 
@@ -343,7 +376,9 @@ class ExamenService
         $activos = Intento::with('examen')->where('id_usuario', $alumno->getKey())
             ->where('id_examen', $examen->getKey())->where('estado', 'en_curso')->get();
         foreach ($activos as $intento) {
-            if ($this->vencido($intento)) $this->finalizar($intento->getKey());
+            if ($this->vencido($intento)) {
+                $this->finalizar($intento->getKey());
+            }
         }
     }
 
@@ -360,6 +395,7 @@ class ExamenService
                     }
                 }
             }, 'id_intento');
+
         return $cerrados;
     }
 }
